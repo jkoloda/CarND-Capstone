@@ -28,9 +28,6 @@ class TLDetector(object):
         self.camera_image = None
         self.lights = []
 
-        sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
-        sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
-
         '''
         /vehicle/traffic_lights provides you with the location of the traffic
         light in 3D map space and helps you acquire an accurate ground truth
@@ -61,6 +58,9 @@ class TLDetector(object):
 
         self.waypoints_2d = None
         self.waypoint_tree = None
+
+        sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
+        sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
 
         rospy.spin()
 
@@ -150,10 +150,10 @@ class TLDetector(object):
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
 
         # Get classification
-        # return self.light_classifier.get_classification(cv_image)
+        return self.light_classifier.get_classification(cv_image)
 
         # Return ground truth for debugging
-        return light.state
+        # return light.state
 
     def process_traffic_lights(self):
         """Find closest visible traffic light if one exists.
@@ -197,12 +197,6 @@ class TLDetector(object):
                 return line_wp_idx, state
 
             return -1, TrafficLight.UNKNOWN
-
-        if light:
-            state = self.get_light_state(light)
-            return light_wp, state
-        self.waypoints = None
-        return -1, TrafficLight.UNKNOWN
 
 
 if __name__ == '__main__':

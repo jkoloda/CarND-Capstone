@@ -2,6 +2,11 @@ from styx_msgs.msg import TrafficLight
 import tensorflow as tf
 import numpy as np
 import rospy
+import cv2
+
+
+MAX_IMAGE_WIDTH = 300
+MAX_IMAGE_HEIGHT = 300
 
 
 class TLClassifier(object):
@@ -12,12 +17,17 @@ class TLClassifier(object):
         self.session = None
         self.detection_graph = None
 
-        self.classes = {1: TrafficLight.GREEN,
-                        2: TrafficLight.RED,
-                        3: TrafficLight.YELLOW,
+        # self.classes = {1: TrafficLight.GREEN,
+        #                 2: TrafficLight.RED,
+        #                 3: TrafficLight.YELLOW,
+        #                 4: TrafficLight.UNKNOWN}
+
+        self.classes = {1: TrafficLight.RED,
+                        2: TrafficLight.YELLOW,
+                        3: TrafficLight.GREEN,
                         4: TrafficLight.UNKNOWN}
 
-        self.model_path = None
+        self.model_path = '/home/student/Projects/CarND-Capstone/ros/src/tl_detector/light_classification/individual.pb'
         self.load_model(model_path=self.model_path)
 
     def get_classification(self, image):
@@ -80,8 +90,11 @@ class TLClassifier(object):
         image_np = self.process_image(image_np)
 
         # Actual model prediction
-        input = [detection_boxes, detection_scores,
-                 detection_classes, num_detections]
+        # input = [detection_boxes, detection_scores,
+        #          detection_classes, num_detections]
+
+        input = [detection_boxes, detection_scores, detection_classes]
+
         (boxes, scores, classes) = self.session.run(
                 input,
                 feed_dict={image_tensor: np.expand_dims(image_np, axis=0)})
@@ -96,6 +109,8 @@ class TLClassifier(object):
             if score > min_score_thresh:
                 # light_class = self.classes[classes[ii]]
                 # return light_class, score
+                rospy.loginfo(self.classes[classes[ii]])
+
                 accumulated_scores[classes[ii] - 1] += score
                 accumulated_classes[classes[ii] - 1] += 1
 
