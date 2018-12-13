@@ -65,15 +65,15 @@ class Controller(object):
         brake = 0
 
         if linear_vel == 0.0 and current_vel < 0.1:
-            # Hold cat in place (apply braking torque since Carla is automatic)
+            # Hold car in place (apply braking torque since Carla is automatic)
             throttle = 0
-            brake = 400
+            brake = 700     # Torque set as suggested in classroom
 
         elif throttle < 0.1 and vel_error < 0:
-            # If we are goinf faster than we should we need to decelarate
+            # If we are going faster than we should we need to decelarate
             throttle = 0
             decel = max(vel_error, self.decel_limit)
-            # Decelration to torque
+            # Deceleration to torque
             brake = abs(decel)*self.vehicle_mass*self.wheel_radius
 
         return throttle, brake, steering

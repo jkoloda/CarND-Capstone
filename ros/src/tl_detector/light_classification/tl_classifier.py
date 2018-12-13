@@ -3,6 +3,7 @@ import tensorflow as tf
 import numpy as np
 import rospy
 import cv2
+import os
 
 
 MAX_IMAGE_WIDTH = 300
@@ -12,22 +13,36 @@ MAX_IMAGE_HEIGHT = 300
 class TLClassifier(object):
     """Traffic light classifier based on a tensorflow model."""
 
-    def __init__(self):
-        """Build, load and prepare traffic light classifier object."""
+    def __init__(self, is_site=True):
+        """Build, load and prepare traffic light classifier object.
+
+        Loads classifier trained on simulator or real data, depending on the
+        is_site flag coming from the configuration file.
+
+        """
         self.session = None
         self.detection_graph = None
-
-        # self.classes = {1: TrafficLight.GREEN,
-        #                 2: TrafficLight.RED,
-        #                 3: TrafficLight.YELLOW,
-        #                 4: TrafficLight.UNKNOWN}
 
         self.classes = {1: TrafficLight.RED,
                         2: TrafficLight.YELLOW,
                         3: TrafficLight.GREEN,
                         4: TrafficLight.UNKNOWN}
 
-        self.model_path = '/home/student/Projects/CarND-Capstone/ros/src/tl_detector/light_classification/individual.pb'
+        self.light_labels = ['RED', 'YELLOW', 'GREEN', 'UNKNOWN']
+
+        temp = os.path.dirname(os.path.realpath(__file__))
+        temp = temp.replace(
+                'ros/src/tl_detector/light_classification',
+                'models',
+                )
+
+        if is_site is False:
+            self.model_path = os.path.join(temp,
+                                           'frozen_inference_graph_sim.pb')
+        else:
+            self.model_path = os.path.join(temp,
+                                           'frozen_inference_graph_real.pb')
+
         self.load_model(model_path=self.model_path)
 
     def get_classification(self, image):
@@ -89,12 +104,7 @@ class TLClassifier(object):
             get_tensor_by_name('num_detections:0')
         image_np = self.process_image(image_np)
 
-        # Actual model prediction
-        # input = [detection_boxes, detection_scores,
-        #          detection_classes, num_detections]
-
         input = [detection_boxes, detection_scores, detection_classes]
-
         (boxes, scores, classes) = self.session.run(
                 input,
                 feed_dict={image_tensor: np.expand_dims(image_np, axis=0)})
@@ -103,13 +113,16 @@ class TLClassifier(object):
         classes = np.squeeze(classes)
         boxes = np.squeeze(boxes)
 
+        # Traffic light state decision
+        # In case mutliple traffic lights are detected (as e.g. is the case of
+        # the simulator) we select the light with the highest accumulated score
         accumulated_scores = np.zeros(len(self.classes))
         accumulated_classes = np.zeros(len(self.classes))
         for ii, score in enumerate(scores):
             if score > min_score_thresh:
                 # light_class = self.classes[classes[ii]]
                 # return light_class, score
-                rospy.loginfo(self.classes[classes[ii]])
+                rospy.loginfo(self.light_labels[int(classes[ii] - 1)])
 
                 accumulated_scores[classes[ii] - 1] += score
                 accumulated_classes[classes[ii] - 1] += 1
