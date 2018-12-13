@@ -1,3 +1,7 @@
+[//]: # (Image References)
+[simulator_example]: ./figures/simulator_example.png
+[tl_detection_example]: ./figures/traffic_lights_sim.png
+
 ## System Integration Project
 
 In this project we implement and integrate three systems that will allow the car to drive safely around a track, namely:
@@ -11,7 +15,7 @@ In this project we implement and integrate three systems that will allow the car
 * `twist_controller`
     * Estimates the DBW (drive-by-wire) signals (throttle/brake and steering) that the car should execute in order to follow the waypoints computed by `waypoint_updater`.
 
-![Performance example](./figures/simulator_example.png"Performance example")
+![Performance example][simulator_example]
 
 ### Waypoint Updater
 
@@ -49,7 +53,7 @@ As a starting point, we use a pre-trained [ssd_inception_v2_coco](https://github
  
 Some example of the performance of the fine-tuned model are shown below.
 
-![Traffic lights detection](figures/traffic_lights_sim.png"Traffic lights detection")
+![Traffic lights detection][tl_detection_example]
 
 Note: Since the car simulator uses a rather outdated tensorflow version, there are problems to successfully load a model trained using a more recent version. In order to solve this version incompatibility, we employ pre-trained models that have been frozen using older tensorflow versions and are available [here](https://github.com/mkoehnke/CarND-Capstone/tree/master/data/traffic_light_detection_model).
 
