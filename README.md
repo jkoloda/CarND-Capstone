@@ -11,7 +11,7 @@ In this project we implement and integrate three systems that will allow the car
 * `twist_controller`
     * Estimates the DBW (drive-by-wire) signals (throttle/brake and steering) that the car should execute in order to follow the waypoints computed by `waypoint_updater`.
 
-![Performance example](figures/simulator_example.png"Performance example")
+![Performance example](./figures/simulator_example.png"Performance example")
 
 ### Waypoint Updater
 
