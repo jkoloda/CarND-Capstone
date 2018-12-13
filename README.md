@@ -1,74 +1,62 @@
-This is the project repo for the final project of the Udacity Self-Driving Car Nanodegree: Programming a Real Self-Driving Car. For more information about the project, see the project introduction [here](https://classroom.udacity.com/nanodegrees/nd013/parts/6047fe34-d93c-4f50-8336-b70ef10cb4b2/modules/e1a23b06-329a-4684-a717-ad476f0d8dff/lessons/462c933d-9f24-42d3-8bdc-a08a5fc866e4/concepts/5ab4b122-83e6-436d-850f-9f4d26627fd9).
+In this project we implement and integrate three systems that will allow the car to drive safely around a track, namely:
 
-Please use **one** of the two installation options, either native **or** docker installation.
+* `waypoint_updater`
+    * Computes the waypoints (position, heading and velocity) that the car should follow.
+    
+* `tl_detector`
+    * Traffic light detector that signals the position and state (light colour) of the traffic light ahead of the car (if there is any). These signals are gathered by `waypoint_updater` that will stop the car at the limit of a traffic light in red.
+    
+* `twist_controller`
+    * Estimates the DBW (drive-by-wire) signals (throttle/brake and steering) that the car should execute in order to follow the waypoints computed by `waypoint_updater`.
+    
+### Waypoint Updater
 
-### Native Installation
+The objective of this node is to estimate the waypoints ahead of the vehicle that should be followed. It takes into account the traffic lights ahead in case the car needs to stop due to the red light being switched on.
 
-* Be sure that your workstation is running Ubuntu 16.04 Xenial Xerus or Ubuntu 14.04 Trusty Tahir. [Ubuntu downloads can be found here](https://www.ubuntu.com/download/desktop).
-* If using a Virtual Machine to install Ubuntu, use the following configuration as minimum:
-  * 2 CPU
-  * 2 GB system memory
-  * 25 GB of free hard drive space
+This node is subscribed to the following topics:
 
-  The Udacity provided virtual machine has ROS and Dataspeed DBW already installed, so you can skip the next two steps if you are using this.
+* `/base_waypoints` that contains the waypoints of the entire path (trajectory) that is to be followed.
+* `/current_pose` corresponds to the current car position.
+* `/traffic_waypoint` waypoint of the detected red traffic light ahead of the car.
 
-* Follow these instructions to install ROS
-  * [ROS Kinetic](http://wiki.ros.org/kinetic/Installation/Ubuntu) if you have Ubuntu 16.04.
-  * [ROS Indigo](http://wiki.ros.org/indigo/Installation/Ubuntu) if you have Ubuntu 14.04.
-* [Dataspeed DBW](https://bitbucket.org/DataspeedInc/dbw_mkz_ros)
-  * Use this option to install the SDK on a workstation that already has ROS installed: [One Line SDK Install (binary)](https://bitbucket.org/DataspeedInc/dbw_mkz_ros/src/81e63fcc335d7b64139d7482017d6a97b405e250/ROS_SETUP.md?fileviewer=file-view-default)
-* Download the [Udacity Simulator](https://github.com/udacity/CarND-Capstone/releases).
+The node publishes the waypoints the car should follow (in the near future) in the `/final_waypoints` topic.
 
-### Docker Installation
-[Install Docker](https://docs.docker.com/engine/installation/)
+In order to compute the final waypoints, the node performs the following steps:
 
-Build the docker container
-```bash
-docker build . -t capstone
-```
+* Get the car current position.
+* Compute the closest waypoint **ahead** of the car.
+* Generate waypoints to follow by slicing the base waypoints from the closest waypoint (computed in the previous step) to the farthest waypoints to consider (200 waypoints by default).
+    * If the a red traffic light is signalled ahead of the car the velocities of the final waypoints are recomputed and gradually decreased so the car stops at the traffic light limit (provided that light is still red). If the light changes to green again the deceleration is canceled and the car starts accelerating in order to achieve the maximum (pre-set) speed.
+    
+### Traffic Light Detector
+ 
+The goal of this node is to locate the closest traffic light ahead of the car and, if possible, to classify the current light state. For this task, we have opted for a CNN-based approach that performs both the location (detects the traffic light on the input image) and the classification (what state the detected traffic light is in).
 
-Run the docker file
-```bash
-docker run -p 4567:4567 -v $PWD:/capstone -v /tmp/log:/root/.ros/ --rm -it capstone
-```
+This node is subscribed to the following topics:
 
-### Port Forwarding
-To set up port forwarding, please refer to the [instructions from term 2](https://classroom.udacity.com/nanodegrees/nd013/parts/40f38239-66b6-46ec-ae68-03afd8a601c8/modules/0949fca6-b379-42af-a919-ee50aa304e6a/lessons/f758c44c-5e40-4e01-93b5-1a82aa4e044f/concepts/16cf4a78-4fc7-49e1-8621-3450ca938b77)
+* `/base_waypoints` provides the complete list of waypoints for the course.
+* `/current_pose` determines the vehicle's location.
+* `/image_color` provides an image stream from the car's camera. These images are used to determine the color of upcoming traffic lights.
+* `/vehicle/traffic_lights` provides the location of all traffic lights (that the base waypoints pass through).
+ 
+The node publishes the index of the waypoint for nearest upcoming red light's stop line to the `/traffic_waypoint` topic.
+ 
+As a starting point, we use a pre-trained [ssd_inception_v2_coco](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/detection_model_zoo.md) architecture which, according to various reports, exhibits a good balanced performance between speed and accuracy. We have then fine-tuned the architecture using data from the simulator and from real world driving scenario. Both datasets, available [here](https://github.com/coldKnight/TrafficLight_Detection-TensorFlowAPI), contain raw input images as well as annotations with the traffic light state (red, yellow, green or unknown) and their corresponding bounding boxes. For the fine-tuning process, the model has to be reconfigured to consider 4 classes only.
+ 
+Some example of the performance of the fine-tuned models are shown below.
 
-### Usage
+Note: Since the car simulator uses a rather outdated tensorflow version, there are problems to successfully load a model trained using a more recent version. In order to solve this version incompatibility, we employ pre-trained models that have been frozen using older tensorflow versions and are available [here](https://github.com/mkoehnke/CarND-Capstone/tree/master/data/traffic_light_detection_model).
 
-1. Clone the project repository
-```bash
-git clone https://github.com/udacity/CarND-Capstone.git
-```
 
-2. Install python dependencies
-```bash
-cd CarND-Capstone
-pip install -r requirements.txt
-```
-3. Make and run styx
-```bash
-cd ros
-catkin_make
-source devel/setup.sh
-roslaunch launch/styx.launch
-```
-4. Run the simulator
+### Drive-by-Wire (DBW) Module
 
-### Real world testing
-1. Download [training bag](https://s3-us-west-1.amazonaws.com/udacity-selfdrivingcar/traffic_light_bag_file.zip) that was recorded on the Udacity self-driving car.
-2. Unzip the file
-```bash
-unzip traffic_light_bag_file.zip
-```
-3. Play the bag file
-```bash
-rosbag play -l traffic_light_bag_file/traffic_light_training.bag
-```
-4. Launch your project in site mode
-```bash
-cd CarND-Capstone/ros
-roslaunch launch/site.launch
-```
-5. Confirm that traffic light detection works on real life images
+The objective of this node is to use various controllers to provide appropriate throttle, brake and steering commands. Once messages are being published to `/final_waypoints`, the vehicle's waypoint follower will publish twist commands to the `/twist_cmd topic`. These commands are published to the following topics:
+
+* `/vehicle/throttle_cmd`
+* `/vehicle/brake_cmd`
+* `/vehicle/steering_cmd`
+
+In addition, if a safety driver takes over, the PID controller will be swithced offf so it does not mistakenly accumulate error. The DBW status (manual or autonomous) is signalled by the `/vehicle/dbw_enabled` topic.
+
+
+
