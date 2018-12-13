@@ -1,3 +1,5 @@
+## System Integration Project
+
 In this project we implement and integrate three systems that will allow the car to drive safely around a track, namely:
 
 * `waypoint_updater`
@@ -8,7 +10,9 @@ In this project we implement and integrate three systems that will allow the car
     
 * `twist_controller`
     * Estimates the DBW (drive-by-wire) signals (throttle/brake and steering) that the car should execute in order to follow the waypoints computed by `waypoint_updater`.
-    
+
+![Performance example](figures/simulator_example.png"Performance example")
+
 ### Waypoint Updater
 
 The objective of this node is to estimate the waypoints ahead of the vehicle that should be followed. It takes into account the traffic lights ahead in case the car needs to stop due to the red light being switched on.
@@ -43,7 +47,9 @@ The node publishes the index of the waypoint for nearest upcoming red light's st
  
 As a starting point, we use a pre-trained [ssd_inception_v2_coco](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/detection_model_zoo.md) architecture which, according to various reports, exhibits a good balanced performance between speed and accuracy. We have then fine-tuned the architecture using data from the simulator and from real world driving scenario. Both datasets, available [here](https://github.com/coldKnight/TrafficLight_Detection-TensorFlowAPI), contain raw input images as well as annotations with the traffic light state (red, yellow, green or unknown) and their corresponding bounding boxes. For the fine-tuning process, the model has to be reconfigured to consider 4 classes only.
  
-Some example of the performance of the fine-tuned models are shown below.
+Some example of the performance of the fine-tuned model are shown below.
+
+![Traffic lights detection](figures/traffic_lights_sim.png"Traffic lights detection")
 
 Note: Since the car simulator uses a rather outdated tensorflow version, there are problems to successfully load a model trained using a more recent version. In order to solve this version incompatibility, we employ pre-trained models that have been frozen using older tensorflow versions and are available [here](https://github.com/mkoehnke/CarND-Capstone/tree/master/data/traffic_light_detection_model).
 
